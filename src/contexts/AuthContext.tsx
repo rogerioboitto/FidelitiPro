@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from "firebase/auth";
 import type { Store, AdminData, PlanPricing, PlanLimits } from '../types';
 import { CloudService } from '../services/api';
+import { ADMIN_EMAIL } from '../config/constants';
 
 type AuthRole = 'admin' | 'store' | 'none';
 
@@ -30,82 +31,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [limits, setLimits] = useState<PlanLimits | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Initial Data Load & Persistence Check
-    // Initial Data Load & Persistence Check
     useEffect(() => {
-        const init = async () => {
-            try {
-                const [loadedStores, loadedPricing, loadedLimits] = await Promise.all([
-                    CloudService.getStores(),
-                    CloudService.getPricing(),
-                    CloudService.getLimits()
-                ]);
-                setStores(loadedStores);
-                setPricing(loadedPricing);
-                setLimits(loadedLimits);
-            } catch (error) {
-                console.error("Failed to load initial data", error);
-            }
-        };
-        init();
-
-        // Firebase Auth Listener
+        // All data loading happens AFTER Firebase Auth confirms a user.
+        // No Firestore calls before authentication.
         const unsubscribe = onAuthStateChanged(CloudService.auth.instance, async (firebaseUser) => {
             if (firebaseUser) {
-                // Check if Admin (we can use a dedicated UID or email check for admin in Auth)
-                // For now, let's assume Admin still logs in via the "Admin" flow which might not be Firebase Auth yet, 
-                // OR we migrate Admin to Firebase Auth too.
-                // Given the user prompt was about "suporte@" email, likely for the store.
-                // Let's check if the email matches admin.
-                const adminData = await CloudService.getAdmin();
-                if (firebaseUser.email === adminData.email) {
-                    setRole('admin');
-                    setUser(adminData);
-                } else {
-                    // It's a store
-                    // We need to find the store data.
-                    // Since we loaded stores, we can find it.
-                    // Ideally we should fetch specific doc to ensure freshness.
-                    const storesList = await CloudService.getStores(); // Refresh to be sure
-                    const foundStore = storesList.find(s => s.id === firebaseUser.uid);
+                try {
+                    // Load shared config data (pricing, limits) — requires auth
+                    const [loadedStores, loadedPricing, loadedLimits] = await Promise.all([
+                        CloudService.getStores(),
+                        CloudService.getPricing(),
+                        CloudService.getLimits()
+                    ]);
+                    setStores(loadedStores);
+                    setPricing(loadedPricing);
+                    setLimits(loadedLimits);
 
-                    if (foundStore) {
-                        setRole('store');
-                        setUser(foundStore);
-                        // Track last visit
-                        CloudService.updateStoreLastVisit(firebaseUser.uid).catch(err => console.error("Error updating last visit:", err));
+                    // Identify role by email — no password stored in Firestore
+                    if (firebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                        const adminData: AdminData = { email: firebaseUser.email };
+                        setRole('admin');
+                        setUser(adminData);
                     } else {
-                        console.warn("Auth user found but no Store data. Attempting auto-repair...");
-                        // Auto-repair logic
-                        try {
-                            const defaultName = firebaseUser.displayName || 'Minha Loja';
-                            const newStoreData = {
-                                name: defaultName,
-                                loyaltyItem: 'Ponto',
-                                rewardGoal: 10
-                            };
-                            const restoredStore = await CloudService.auth.createStoreData(
-                                firebaseUser.uid,
-                                firebaseUser.email || '',
-                                newStoreData
-                            );
+                        const foundStore = loadedStores.find(s => s.id === firebaseUser.uid);
 
-                            // Update local state
-                            const newStores = [...storesList, restoredStore];
-                            setStores(newStores);
+                        if (foundStore) {
                             setRole('store');
-                            setUser(restoredStore);
-                        } catch (repairError) {
-                            console.error("Auto-repair failed:", repairError);
-                            await CloudService.auth.signOut();
-                            setRole('none');
-                            setUser(null);
+                            setUser(foundStore);
+                            CloudService.updateStoreLastVisit(firebaseUser.uid).catch(err =>
+                                console.error("Error updating last visit:", err)
+                            );
+                        } else {
+                            console.warn("Auth user found but no Store data. Attempting auto-repair...");
+                            try {
+                                const defaultName = firebaseUser.displayName || 'Minha Loja';
+                                const newStoreData = {
+                                    name: defaultName,
+                                    loyaltyItem: 'Ponto',
+                                    rewardGoal: 10
+                                };
+                                const restoredStore = await CloudService.auth.createStoreData(
+                                    firebaseUser.uid,
+                                    firebaseUser.email || '',
+                                    newStoreData
+                                );
+                                setStores(prev => [...prev, restoredStore]);
+                                setRole('store');
+                                setUser(restoredStore);
+                            } catch (repairError) {
+                                console.error("Auto-repair failed:", repairError);
+                                await CloudService.auth.signOut();
+                                setRole('none');
+                                setUser(null);
+                            }
                         }
                     }
+                } catch (error) {
+                    console.error("Failed to load data after auth:", error);
+                    setRole('none');
+                    setUser(null);
                 }
             } else {
                 setRole('none');
                 setUser(null);
+                setStores([]);
             }
             setLoading(false);
         });
@@ -119,14 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const loginAsAdmin = (admin: AdminData) => {
-        // Legacy or if using different auth for admin
         setRole('admin');
         setUser(admin);
     };
 
     const loginAsStore = (store: Store) => {
-        // This is now mostly handled by onAuthStateChanged if we use Firebase Auth for login.
-        // But if this is called manually, we update state.
         setRole('store');
         setUser(store);
     };
@@ -135,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await CloudService.auth.signOut();
         setRole('none');
         setUser(null);
-        localStorage.removeItem('fidelitipro_user_id'); // Cleanup legacy
+        localStorage.removeItem('fidelitipro_user_id');
         localStorage.removeItem('fidelitipro_role');
     };
 

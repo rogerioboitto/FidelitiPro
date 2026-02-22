@@ -25,7 +25,7 @@ import {
 import { getAnalytics } from "firebase/analytics";
 import { getFunctions, httpsCallable, type Functions } from "firebase/functions";
 import type { Store, AdminData, PlanPricing, CustomerData, PlanLimits, PlatformStats } from '../types';
-import { PLAN_LIMITS } from '../config/constants';
+import { PLAN_LIMITS, ADMIN_EMAIL } from '../config/constants';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDiUABPQdMB77v7IGnwKkrleoKC8PdKYS8",
@@ -191,15 +191,9 @@ export const CloudService = {
         await withTimeout(Promise.all(promises));
     },
 
-    async getAdmin(): Promise<AdminData> {
-        const fallback = { email: 'rogerioboitto@gmail.com', password: '123456' };
-        try {
-            const docSnap = await withTimeout(getDoc(doc(db, "config", "admin")));
-            return docSnap.exists() ? docSnap.data() as AdminData : fallback;
-        } catch (e) {
-            console.error("Erro ao carregar admin da nuvem, usando fallback.", e);
-            return fallback;
-        }
+    getAdminEmail(): string {
+        // Admin is identified by email only — no password stored in Firestore
+        return ADMIN_EMAIL;
     },
 
     async saveAdmin(admin: AdminData): Promise<void> {

@@ -38,7 +38,7 @@ export interface PlanLimits {
 export interface Store {
     id: string;
     email: string;
-    password: string;
+    password?: string; // Legacy — authentication handled by Firebase Auth
     name: string;
     logo?: string;
     loyaltyItem: string;
@@ -59,7 +59,7 @@ export interface Store {
 
 export interface AdminData {
     email: string;
-    password: string;
+    password?: string; // Legacy field — authentication now handled by Firebase Auth
 }
 
 export interface PlatformActivity {

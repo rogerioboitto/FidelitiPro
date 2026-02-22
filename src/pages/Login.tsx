@@ -11,7 +11,7 @@ import { isTemporaryEmail } from '../utils/emailValidator';
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
-    const { loginAsAdmin } = useAuth();
+    useAuth(); // Ensures AuthContext is initialized
 
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({ name: '', email: '', pass: '' });
@@ -68,38 +68,32 @@ const Login: React.FC = () => {
 
         try {
             if (isLogin) {
-                // 1. Legacy Admin Check (Manual)
-                const adminData = await CloudService.getAdmin();
-                const isAdminEmail = formData.email.toLowerCase() === adminData.email.toLowerCase();
-
-                // 2. Firebase Auth Login (Stores)
                 try {
-                    // Try Admin first if credentials match explicitly
-                    if (isAdminEmail && formData.pass === adminData.password) {
-                        loginAsAdmin(adminData);
-                        navigate('/admin');
-                        return;
-                    }
-
+                    // Single Firebase Auth flow for all users (admin and stores)
                     await CloudService.auth.signIn(formData.email, formData.pass);
                     const user = CloudService.auth.instance.currentUser;
 
                     if (user && !user.emailVerified) {
-                        setError('E-mail não verificado. Cheque sua caixa de entrada.');
-                        await CloudService.auth.signOut();
-                        setLoading(false);
-                        return;
+                        // Admin accounts don't need email verification
+                        const isAdmin = user.email?.toLowerCase() === CloudService.getAdminEmail().toLowerCase();
+                        if (!isAdmin) {
+                            setError('E-mail não verificado. Cheque sua caixa de entrada.');
+                            await CloudService.auth.signOut();
+                            setLoading(false);
+                            return;
+                        }
                     }
+
+                    // AuthContext onAuthStateChanged will detect admin/store role automatically
+                    // and redirect will happen via App.tsx route protection
                     navigate('/dashboard');
                 } catch (authError: any) {
                     console.error("Auth Error:", authError);
                     if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
-                        // Special UI for user not found
                         setEmailNotFound(true);
-                        setLoading(false); // Stop loading to show UI
+                        setLoading(false);
                         return;
                     }
-
                     if (authError.code === 'auth/wrong-password') {
                         setError('Senha incorreta.');
                     } else if (authError.code === 'auth/too-many-requests') {

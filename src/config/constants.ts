@@ -1,5 +1,8 @@
 export const APP_URL = 'https://fidelitipro.com.br';
 
+// Admin identification — no password stored in Firestore
+export const ADMIN_EMAIL = 'rogerioboitto@gmail.com';
+
 export const PLAN_LIMITS = {
     Trial: 5,
     Basic: 100,

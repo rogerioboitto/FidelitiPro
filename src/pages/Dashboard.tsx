@@ -107,9 +107,6 @@ const Dashboard: React.FC = () => {
         loyaltyItem: store?.loyaltyItem || 'Ponto',
         rewardGoal: store?.rewardGoal || 10,
         logo: store?.logo || '',
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
         defaultLaunchAmount: store?.defaultLaunchAmount || 1
     });
 
@@ -215,21 +212,12 @@ const Dashboard: React.FC = () => {
     };
 
     const handleSaveSettings = () => {
-        let finalPassword = store.password;
-        if (settingsForm.newPassword) {
-            if (settingsForm.currentPassword !== store.password || settingsForm.newPassword !== settingsForm.confirmPassword) {
-                setSettingsMessage({ type: 'error', text: 'Erro na senha.' });
-                return;
-            }
-            finalPassword = settingsForm.newPassword;
-        }
         onSaveStoreMetadata({
             ...store,
             name: settingsForm.name,
             loyaltyItem: settingsForm.loyaltyItem,
             rewardGoal: settingsForm.rewardGoal,
             logo: settingsForm.logo,
-            password: finalPassword,
             defaultLaunchAmount: settingsForm.defaultLaunchAmount
         });
         setSettingsMessage({ type: 'success', text: 'Atualizado!' });

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -15,6 +15,13 @@ import { PWAProvider } from './contexts/PWAContext';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import SupportHub from './components/SupportHub';
 
+// Redirects admin users to /admin, stores stay on /dashboard
+const DashboardRoute: React.FC = () => {
+  const { role } = useAuth();
+  if (role === 'admin') return <Navigate to="/admin" replace />;
+  return <Dashboard />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -27,7 +34,7 @@ const App: React.FC = () => {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<DashboardRoute />} />
             <Route path="/customer" element={<CustomerConsultation />} />
             <Route path="/verify" element={<VerifyEmail />} />
             <Route path="/manual" element={<IntegrationManual />} />
