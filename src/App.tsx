@@ -22,6 +22,14 @@ const DashboardRoute: React.FC = () => {
   return <Dashboard />;
 };
 
+// Protects /admin: only role=admin can access, others go to /login
+const AdminRoute: React.FC = () => {
+  const { role, loading } = useAuth();
+  if (loading) return null; // Wait for auth before redirecting
+  if (role !== 'admin') return <Navigate to="/login" replace />;
+  return <AdminDashboard />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -33,7 +41,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin" element={<AdminRoute />} />
             <Route path="/dashboard" element={<DashboardRoute />} />
             <Route path="/customer" element={<CustomerConsultation />} />
             <Route path="/verify" element={<VerifyEmail />} />

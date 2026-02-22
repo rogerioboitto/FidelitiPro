@@ -485,7 +485,7 @@ const AdminDashboard: React.FC = () => {
                                                     <td className="p-3">
                                                         <div className="text-[10px] font-bold text-slate-500">
                                                             <p className="flex items-center gap-1"><span className="text-indigo-500 text-[9px] uppercase tracking-widest min-w-[35px]">Email:</span> {store.email}</p>
-                                                            <p className="flex items-center gap-1"><span className="text-rose-400 text-[9px] uppercase tracking-widest min-w-[35px]">Senha:</span> <span className="font-mono bg-slate-100 px-1 rounded text-[9px]">{store.password || 'Auth Google'}</span></p>
+                                                            <p className="flex items-center gap-1"><span className="text-emerald-500 text-[9px] uppercase tracking-widest min-w-[35px]">Auth:</span> <span className="font-mono bg-emerald-50 text-emerald-700 px-1 rounded text-[9px]">Firebase</span></p>
                                                         </div>
                                                     </td>
                                                     <td className="p-3">
