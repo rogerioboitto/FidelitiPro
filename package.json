@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy",
-    "ship": "git add . && git commit -m \"Update\" && git push && npm run deploy"
+    "deploy 2": "git add . && git commit -m \"Update\" && git push && npm run deploy"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "fidelitipro"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }
